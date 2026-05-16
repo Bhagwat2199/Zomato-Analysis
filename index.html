@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Pod Master Admin</title>
+    <style>
+        :root {
+            --bg-dark: #0d1117;
+            --card-dark: #161b22;
+            --border-color: #30363d;
+            --text-main: #c9d1d9;
+            --accent-blue: #58a6ff;
+            --accent-green: #3fb950;
+            --accent-red: #f85149;
+            --accent-purple: #8957e5;
+            --accent-yellow: #e3b341;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+        }
+
+        h1 { color: var(--accent-blue); letter-spacing: 1px; margin-bottom: 5px; }
+        .subtitle { color: #8b949e; font-size: 0.9rem; margin-bottom: 20px; }
+
+        .dashboard-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* CARD STYLES */
+        .card {
+            background: var(--card-dark);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            flex: 1 1 350px;
+            max-width: 500px;
+            text-align: left;
+        }
+
+        .card h3 {
+            margin-top: 0;
+            color: var(--accent-blue);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+        }
+
+        /* LIVE STATS */
+        .stat { font-size: 1.1rem; margin: 10px 0; font-weight: bold;}
+        .val { color: var(--accent-green); }
+        .grid { display: grid; grid-template-columns: 50% 50%; gap: 8px; margin-top: 15px;}
+        .grid-item { background: #21262d; padding: 12px; border-radius: 8px; border-left: 4px solid var(--accent-blue); }
+        .grid-val { color: var(--accent-blue); font-weight: bold; font-size: 1.3rem; display: block; margin-top: 5px; }
+
+        /* BUTTONS */
+        .btn-container { text-align: center; }
+        .btn { display: inline-block; width: 45%; padding: 12px 0; margin: 5px 1%; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; color: white; font-size: 0.9rem; }
+        .btn-full { width: 92%; margin: 5px 4%; }
+        .btn-on { background: #238636; } .btn-off { background: #da3633; } 
+        .btn-uv { background: var(--accent-purple); } .btn-sys { background: var(--accent-yellow); color: #0d1117; }
+        .estop { width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(145deg, #f85149, #b62324); border: 4px solid #4a0000; color: white; font-weight: bold; font-size: 1rem; margin-top: 15px; cursor: pointer; box-shadow: 0 5px 15px rgba(248,81,73,0.4); }
+
+        /* CONNECTION INPUT */
+        .ip-bar { background: #21262d; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid var(--accent-yellow); text-align: center; }
+        .ip-bar input { padding: 8px; border-radius: 4px; border: 1px solid #8b949e; background: #0d1117; color: white; width: 200px; text-align: center; }
+
+        /* CLOUD REPORTS (THINGSPEAK) */
+        .cloud-section { width: 100%; max-width: 800px; margin: 30px auto; }
+        .report-card { background: #21262d; border: 1px solid var(--border-color); border-radius: 12px; padding: 15px; margin-bottom: 15px; text-align: left; }
+        .report-header { display: flex; justify-content: space-between; border-bottom: 1px dashed var(--border-color); padding-bottom: 10px; margin-bottom: 10px; }
+        .score-badge { background: rgba(63, 185, 80, 0.1); color: var(--accent-green); padding: 4px 10px; border-radius: 20px; font-weight: bold; }
+        .ts-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; font-size: 0.9rem; }
+        .ts-item span { color: #8b949e; display: block; font-size: 0.8rem; text-transform: uppercase;}
+    </style>
+</head>
+<body>
+
+    <h1>SMART POD MASTER ADMIN</h1>
+    <div class="subtitle">Unified Live Control & Cloud Analytics</div>
+
+    <div class="ip-bar">
+        <label for="espIP" style="color: var(--accent-yellow); font-weight: bold;">Pod Local IP Address: </label>
+        <input type="text" id="espIP" placeholder="e.g., 192.168.4.1" value="192.168.4.1">
+        <div style="font-size: 0.8rem; color:#8b949e; margin-top:5px;">Required for Live Monitoring and Hardware Buttons</div>
+    </div>
+
+    <div class="dashboard-container">
+        
+        <div class="card">
+            <h3>📡 Live Telemetry</h3>
+            <div class="stat">STATUS: <span class="val" id="status" style="color:white;">Offline</span></div>
+            <div class="stat">AMP: <span class="val" id="amp">0</span> &nbsp;|&nbsp; DIST: <span class="val" id="dist" style="color:var(--accent-blue);">0</span>cm</div>
+            <div class="stat">LOCK: <span class="val" id="locked" style="color:var(--accent-purple);">0cm</span></div>
+            <div class="stat" style="border-top:1px dashed var(--border-color); padding-top:10px; margin-top:10px;">
+                R&D BPM: <span class="val" id="bpm" style="color:var(--accent-red);">0</span> &nbsp;|&nbsp; BR: <span class="val" id="br" style="color:var(--accent-blue);">0</span>
+            </div>
+            <div class="stat">STATE: <span class="val" id="state" style="color:white;">...</span></div>
+            <div class="stat" style="color:var(--accent-yellow); font-size:0.9rem;" id="msg">Awaiting Connection...</div>
+            
+            <div class="grid">
+                <div class="grid-item">Sleep<span class="grid-val"><span id="sleep">0</span>m</span></div>
+                <div class="grid-item">Deep<span class="grid-val"><span id="deep">0</span>m</span></div>
+                <div class="grid-item">Awake<span class="grid-val"><span id="awake">0</span>m</span></div>
+                <div class="grid-item">Turns<span class="grid-val" id="body">0</span></div>
+            </div>
+        </div>
+
+        <div class="card btn-container">
+            <h3>⚙️ Hardware Override</h3>
+            <button class="btn btn-on btn-full" onclick="cmd('unlock')">🔓 FORCE UNLOCK</button>
+            <button class="btn btn-on" onclick="cmd('lon')">💡 LIGHT ON</button><button class="btn btn-off" onclick="cmd('loff')">LIGHT OFF</button>
+            <button class="btn btn-on" onclick="cmd('fon')">❄️ FAN ON</button><button class="btn btn-off" onclick="cmd('foff')">FAN OFF</button>
+            <button class="btn btn-uv" onclick="cmd('uvon')">✨ FORCE UV</button><button class="btn btn-off" onclick="cmd('uvoff')">UV ABORT</button>
+            <hr style="border:0; border-top:1px solid var(--border-color); margin:15px 0;">
+            <button class="btn btn-sys" onclick="cmd('resetRadar')">🔄 REBOOT SYSTEM</button><br>
+            <button class="estop" onclick="cmd('stop')">EMERGENCY<br>STOP</button>
+        </div>
+    </div>
+
+    <div class="cloud-section">
+        <h3 style="color: var(--accent-blue); text-align: left; border-bottom: 2px solid var(--border-color); padding-bottom: 5px;">☁️ 24-Hour Cloud Health Reports (ThingSpeak)</h3>
+        <div id="reports-container">
+            <div style="color: var(--accent-blue); margin-top: 20px;">Fetching cloud data...</div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 1. LIVE HARDWARE CONTROL LOGIC (HTTP)
+        // ==========================================
+        function getBaseURL() {
+            let ip = document.getElementById('espIP').value.trim();
+            if (!ip.startsWith('http://')) ip = 'http://' + ip;
+            return ip;
+        }
+
+        function cmd(action) { 
+            fetch(getBaseURL() + '/' + action).catch(e => console.log("Control Error: Verify IP and HTTP rules.", e)); 
+        } 
+
+        // Poll ESP32 for Live Data every second
+        setInterval(function() { 
+            let ip = getBaseURL();
+            fetch(ip + '/data')
+            .then(r => r.json())
+            .then(d => { 
+                document.getElementById('status').innerText = d.status; 
+                document.getElementById('amp').innerText = d.amp; 
+                document.getElementById('dist').innerText = d.dist; 
+                document.getElementById('locked').innerText = d.locked; 
+                document.getElementById('bpm').innerText = d.bpm; 
+                document.getElementById('br').innerText = d.br; 
+                document.getElementById('state').innerText = d.state; 
+                document.getElementById('sleep').innerText = d.sleep; 
+                document.getElementById('deep').innerText = d.deep; 
+                document.getElementById('awake').innerText = d.awake; 
+                document.getElementById('body').innerText = d.body; 
+                document.getElementById('msg').innerText = d.msg; 
+            }).catch(e => {
+                document.getElementById('status').innerText = "Offline";
+            });
+        }, 1000);
+
+        // ==========================================
+        // 2. CLOUD REPORT LOGIC (HTTPS)
+        // ==========================================
+        const channelID = "3386008"; // PUT YOUR THINGSPEAK ID HERE
+        const tsUrl = `https://api.thingspeak.com/channels/${channelID}/feeds.json?results=50`;
+
+        async function fetchReports() {
+            try {
+                const response = await fetch(tsUrl);
+                const data = await response.json();
+                renderReports(data.feeds);
+            } catch (error) {
+                document.getElementById('reports-container').innerText = "Error connecting to ThingSpeak.";
+            }
+        }
+
+        function renderReports(feeds) {
+            const container = document.getElementById('reports-container');
+            container.innerHTML = ''; 
+
+            const now = new Date();
+            let validReports = 0;
+
+            for (let i = feeds.length - 1; i >= 0; i--) {
+                const feed = feeds[i];
+                const feedDate = new Date(feed.created_at);
+
+                // 24-Hour Deletion Rule
+                if ((now - feedDate) > (24 * 60 * 60 * 1000)) continue; 
+                if (!feed.field1 || !feed.field4) continue; 
+
+                validReports++;
+
+                let extra = {};
+                try { extra = JSON.parse(feed.field4); } catch (e) { continue; }
+
+                const totalH = Math.floor(feed.field1 / 60); const totalM = feed.field1 % 60;
+                const deepH = Math.floor(extra.deep / 60); const deepM = extra.deep % 60;
+
+                const card = document.createElement('div');
+                card.className = 'report-card';
+                card.innerHTML = `
+                    <div class="report-header">
+                        <div style="font-weight:bold; color:var(--accent-yellow);">Session: ${extra.time || feedDate.toLocaleString()}</div>
+                        <div class="score-badge">Sleep Score: ${feed.field2}/100</div>
+                    </div>
+                    <div class="ts-grid">
+                        <div class="ts-item"><span>Total Sleep</span>${totalH}h ${totalM}m</div>
+                        <div class="ts-item"><span>Deep Sleep</span>${deepH}h ${deepM}m</div>
+                        <div class="ts-item"><span>Restlessness</span>${extra.movement} Shifts</div>
+                        <div class="ts-item"><span>Avg BPM</span><span style="color:white; font-size:1rem;">${feed.field3} BPM</span></div>
+                        <div class="ts-item"><span>BPM Range</span>${extra.minBPM} - ${extra.maxBPM}</div>
+                        <div class="ts-item"><span>Stress</span><span style="color:var(--accent-green); font-size:1rem;">${extra.stress}</span></div>
+                    </div>
+                `;
+                container.appendChild(card);
+            }
+
+            if (validReports === 0) {
+                container.innerHTML = `<div style="color:#8b949e; padding:20px; border:1px dashed #30363d; border-radius:8px;">No sessions recorded in the last 24 hours.</div>`;
+            }
+        }
+
+        fetchReports();
+        setInterval(fetchReports, 60000);
+    </script>
+</body>
+</html>
